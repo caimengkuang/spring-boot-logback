@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration  scan="true" scanPeriod="60 seconds" debug="false">
+
+    <!--引入默认的一些设置-->
+    <include resource="org/springframework/boot/logging/logback/base.xml" />
+
+    <!-- 控制台输出 -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 输出到文件（这个 appender 是对应当日志工厂类参数为 类名.class时，将日志输出到service.xxx文件中） -->
+    <appender name="serviceAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <!--文件输出地址和文件名-->
+            <fileNamePattern>logs/service.%d{yyyy-MM-dd}_%i.log.zip</fileNamePattern>
+            <!--文件归档到阀值（这里表示超过1MB就会被压缩）-->
+            <maxFileSize>1MB</maxFileSize>
+            <!--归档文件要保留到周期（这里表示超过7天会被删除）-->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+
+        <!--Encoder 负责两件事，一是把事件转换为字节数组，二是把字节数组写入输入流-->
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %contextName [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 滚动日志文件，这个比较常用 -->
+    <appender name="matterAppender" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- rollover daily -->
+            <fileNamePattern>logs/matterService.%d{yyyy-MM-dd}_%i.log.zip</fileNamePattern>
+            <timeBasedFileNamingAndTriggeringPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedFNATP">
+                <maxFileSize>1MB</maxFileSize>
+            </timeBasedFileNamingAndTriggeringPolicy>
+            <!-- 日志保存7天 -->
+            <maxHistory>7</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <charset>UTF-8</charset>
+            <pattern>%date{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 测试环境 -->
+    <springProfile name="dev">
+        <logger name="com.yase.logbackdemo" level="INFO" />
+
+        <!--控制台输出-->
+        <root level="info">
+            <appender-ref ref="console"/>
+        </root>
+
+        <!--
+          com.yase.logbackdemo.controller 包下的文件日志处理方式 要是日志工程类的参数为 对象.class
+         （例如：LogbackDemoController类： LoggerFactory.getLogger(LogbackDemoController.class)
+          那么LogbackDemoController类将会将日志输出到 service.xxx文件中）
+        -->
+        <logger name="com.yase.logbackdemo" level="debug" additivity="false">
+            <appender-ref ref="serviceAppender"/>
+        </logger>
+
+
+        <!-- 重点来了，上边都是appender输出源。这里开始就是looger了 -->
+        <!--
+             name意思是这个logger管的哪一片，像下面这个管的就是log/test包下的所有文件
+             level是只展示什么行为信息级别以上的，类似阈值过滤器,日志级别：
+             additivity表示是否再抛出事件，就是说如果有一个logger的name是log，如果这个属性是true，
+             另一个logger就会在这个logger处理完后接着继续处理
+        -->
+        <logger name="matter" level="debug" additivity="false">
+            <!-- 连接输出源,也就是上边那几个输出源,你可以随便选几个appender-->
+            <appender-ref ref="matterAppender"/>
+            <appender-ref ref="serviceAppender"/>
+        </logger>
+
+    </springProfile>
+
+    <!-- 生产环境 -->
+    <springProfile name="prod">
+        <logger name="com.yase.logbackdemo" level="ERROR"/>
+    </springProfile>
+
+</configuration>
